@@ -30,7 +30,7 @@ type S3 struct {
 
 // Open - implements http.Filesystem implementation.
 func (s3 *S3) Open(name string) (http.File, error) {
-	if strings.HasSuffix(name, pathSeparator) {
+	if name == "/" {
 		return &httpMinioObject{
 			client: s3.Client,
 			object: nil,
@@ -46,6 +46,16 @@ func (s3 *S3) Open(name string) (http.File, error) {
 		return nil, os.ErrNotExist
 	}
 
+	if obj == nil {
+		return &httpMinioObject{
+			client: s3.Client,
+			object: nil,
+			isDir:  true,
+			bucket: bucket,
+			prefix: name,
+		}, nil
+	}
+
 	return &httpMinioObject{
 		client: s3.Client,
 		object: obj,
@@ -57,11 +67,11 @@ func (s3 *S3) Open(name string) (http.File, error) {
 
 func getObject(ctx context.Context, s3 *S3, name string) (*minio.Object, error) {
 	names := [3]string{name, name + "/index.html", name + "/index.htm"}
-	for _, n := range names {
+	for i, n := range names {
 		obj, err := s3.Client.GetObject(ctx, s3.bucket, n, minio.GetObjectOptions{})
 		if err != nil {
 			log.Println(err)
-			return nil, os.ErrNotExist
+			continue
 		}
 
 		_, err = obj.Stat()
@@ -70,10 +80,14 @@ func getObject(ctx context.Context, s3 *S3, name string) (*minio.Object, error) 
 			if minio.ToErrorResponse(err).Code != "NoSuchKey" {
 				log.Println(err)
 			}
-			return nil, os.ErrNotExist
+			continue
 		}
 
-		return obj, nil
+		if i == 0 {
+			return obj, nil
+		} else {
+			return nil, nil
+		}
 	}
 
 	return nil, os.ErrNotExist
