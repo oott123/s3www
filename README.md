@@ -35,7 +35,7 @@ Point your web browser to http://127.0.0.1:8080 ensure your `s3www` is serving y
 Make sure you have `index.html` under `mysite`
 
 ```
-podman run --rm -p 8080:8080 y4m4/s3www:latest \
+podman run --rm -p 8080:8080 ghcr.io/oott123/s3www:latest \
       -endpoint "https://s3.amazonaws.com" \
       -accessKey "accessKey" \
       -secretKey "secretKey" \
